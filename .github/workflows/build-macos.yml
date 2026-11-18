@@ -1,0 +1,91 @@
+name: AERMOD per Mac
+on:
+  workflow_dispatch:
+    inputs:
+      build_ref:
+        description: 'Revisione di atmmod/pyaermod (main oppure commit fissato)'
+        required: true
+        default: main
+      sample_url:
+        description: 'ZIP del sample run EPA, coerente con i sorgenti'
+        required: true
+        default: https://gaftp.epa.gov/air/aqmg/SCRAM/models/preferred/aermod/AERMOD_Sample_Run.zip
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            label: AppleSilicon
+            arch: arm64
+          - runner: macos-15-intel
+            label: Intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+      PACKAGE_NAME: AERMOD-Mac-${{ matrix.label }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: atmmod/pyaermod
+          ref: ${{ inputs.build_ref }}
+          path: upstream
+      - name: Compilatore
+        shell: bash
+        run: |
+          brew list gcc >/dev/null 2>&1 || brew install gcc
+          command -v gfortran
+          gfortran --version
+          test "$(uname -m)" = '${{ matrix.arch }}'
+      - name: Compilazione dei tre programmi
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          git -C upstream rev-parse HEAD > diagnostics/pyaermod-commit.txt
+          brew info --json=v2 gcc > diagnostics/compiler.json
+          sw_vers > diagnostics/macos.txt
+          set -o pipefail
+          cd upstream
+          bash scripts/build_aermod.sh all 2>&1 | tee ../diagnostics/build.log
+      - name: Pacchetto con librerie e firma locale
+        run: python3 scripts/package_macos.py upstream/bin "$PACKAGE_NAME"
+      - name: Sample run completo e rapporti di confronto
+        env:
+          SAMPLE_URL: ${{ inputs.sample_url }}
+        run: python3 scripts/sample_run.py "$PACKAGE_NAME" "$SAMPLE_URL"
+      - name: Prova di rilocazione senza librerie Homebrew
+        shell: bash
+        run: |
+          # Esegue nuovamente il sample dopo aver rinominato le librerie Homebrew.
+          # La VM e' temporanea; il ripristino avviene anche in caso di errore.
+          gcc_prefix="$(brew --prefix gcc)"
+          mv "$gcc_prefix/lib/gcc" "$gcc_prefix/lib/gcc.aermod-hidden"
+          trap 'mv "$gcc_prefix/lib/gcc.aermod-hidden" "$gcc_prefix/lib/gcc"' EXIT
+          python3 scripts/sample_run.py "$PACKAGE_NAME" "$SAMPLE_URL"
+      - name: Archivio per gli studenti
+        shell: bash
+        run: |
+          cp -R diagnostics "$PACKAGE_NAME/"
+          cp GUIDA-STUDENTI.txt "$PACKAGE_NAME/"
+          ditto -c -k --sequesterRsrc --keepParent "$PACKAGE_NAME" "$PACKAGE_NAME.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AERMOD-Mac-${{ matrix.label }}
+          path: AERMOD-Mac-${{ matrix.label }}.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Diagnostica anche in caso di errore
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Diagnostica-${{ matrix.label }}
+          path: |
+            diagnostics/
+            AERMOD-Mac-${{ matrix.label }}/reports/
+          retention-days: 30
