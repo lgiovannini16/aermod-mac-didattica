@@ -1,0 +1,49 @@
+AERMOD / AERMAP / AERMET per macOS — uso didattico
+
+Scegliere AppleSilicon per chip Apple serie M, Intel per processori Intel.
+Questo primo workflow produce programmi destinati a macOS 15 o successivo.
+Per macOS precedenti chiedere al docente una compilazione compatibile.
+
+Non sono necessari Homebrew, Python o un compilatore sul proprio Mac.
+Estrarre il pacchetto ZIP ricevuto dal docente e tenere insieme programmi
+ e cartella lib. Le librerie sono gia' incluse anche nelle cartelle del sample.
+
+Aprire Terminale, scrivere cd seguito da uno spazio, trascinare la cartella
+che contiene l'input dal Finder nel Terminale e premere Invio.
+Poi avviare, nell'ordine previsto dall'esercitazione:
+
+  ./aermap
+
+nella cartella contenente aermap.inp;
+
+  ./aermet aermet1.inp
+  ./aermet aermet2.inp
+
+nella cartella contenente gli input AERMET;
+
+  ./aermod
+
+nella cartella contenente aermod.inp.
+
+Il sample incluso e' gia' stato eseguito sul Mac di compilazione.
+Il docente deve revisionare reports/ESITO.txt e le differenze prima dell'uso.
+Per ripartire da zero conservare una copia del pacchetto originale.
+Usare gli input adattati a macOS inclusi nel pacchetto: i percorsi Windows
+con barra inversa sono stati convertiti e gli adattamenti registrati.
+
+Se compare "Permission denied":
+  chmod +x aermap aermet aermod
+Applicare il comando soltanto ai programmi presenti nella cartella corrente.
+
+Il pacchetto usa una firma locale ad hoc, non una notarizzazione Apple.
+macOS potrebbe richiedere l'autorizzazione in Impostazioni di Sistema >
+Privacy e sicurezza > Apri comunque dopo il primo tentativo di esecuzione.
+Seguire questa procedura soltanto per il pacchetto verificato dal docente.
+Non disabilitare globalmente le protezioni di macOS.
+
+Con "Bad CPU type" verificare di avere il pacchetto Intel/AppleSilicon giusto.
+Con "Library not loaded" conservare il messaggio completo e informare il docente:
+non dovrebbe essere necessario installare il compilatore per usare il pacchetto.
+
+Versioni e provenienza: diagnostics/ e reports/sample-origin.txt.
+Sono compilazioni didattiche dai sorgenti EPA, non eseguibili distribuiti da EPA.
